@@ -1,6 +1,6 @@
 --[[
     ╔═══════════════════════════════════╗
-    ║     KAISEN SCRIPTS - V6.0         ║
+    ║     KAISEN SCRIPTS - V6.1         ║
     ║   Don't Get Crushed By 67         ║
     ║         By: KAISEN                ║
     ╚═══════════════════════════════════╝
@@ -589,6 +589,52 @@ end
 createToggle("Coordenadas", MainSection, function(enabled)
     Config.ShowCoordinates = enabled
     toggleCoordinates(enabled)
+end)
+
+-- Botão Dex Explorer
+local DexBtn = Instance.new("TextButton")
+DexBtn.Size = UDim2.new(1, -10, 0, 45)
+DexBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 50)
+DexBtn.BorderSizePixel = 0
+DexBtn.Text = "🔍 Dex Explorer V4"
+DexBtn.Font = Enum.Font.GothamBold
+DexBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DexBtn.TextSize = 14
+DexBtn.Parent = MainSection
+
+Instance.new("UICorner", DexBtn).CornerRadius = UDim.new(0, 8)
+
+DexBtn.MouseButton1Click:Connect(function()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Dex Explorer",
+        Text = "Carregando Dex Explorer V4...",
+        Duration = 3
+    })
+    
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+end)
+
+-- Botão Remote Spy
+local RemoteSpyBtn = Instance.new("TextButton")
+RemoteSpyBtn.Size = UDim2.new(1, -10, 0, 45)
+RemoteSpyBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+RemoteSpyBtn.BorderSizePixel = 0
+RemoteSpyBtn.Text = "📡 Remote Spy (Logs)"
+RemoteSpyBtn.Font = Enum.Font.GothamBold
+RemoteSpyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RemoteSpyBtn.TextSize = 14
+RemoteSpyBtn.Parent = MainSection
+
+Instance.new("UICorner", RemoteSpyBtn).CornerRadius = UDim.new(0, 8)
+
+RemoteSpyBtn.MouseButton1Click:Connect(function()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Remote Spy",
+        Text = "Carregando Remote Spy...",
+        Duration = 3
+    })
+    
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
 end)
 
 -- Botão Infinite Yield
