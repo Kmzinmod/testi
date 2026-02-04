@@ -22,8 +22,13 @@ local Config = {
     FarmHealth = false,
     GodMode = false,
     Invisible = false,
-    WalkSpeed = 16
+    WalkSpeed = 16,
+    ShowCoordinates = false
 }
+
+-- Variáveis para controle de recursos
+local coordinatesGui = nil
+local coordinatesConnection = nil
 
 -- Remove UI antiga
 if player.PlayerGui:FindFirstChild("KaisenScripts") then 
@@ -430,31 +435,25 @@ end
 
 -- Criar Seções
 local MainSection = createSection("Main")
-local PlayerSection = createSection("Player")
 local ConfigSection = createSection("Config")
 
 -- Criar Botões do Menu
 local MainBtn, MainIcon, MainLabel = createMenuButton("Main Features", "🏠", UDim2.new(0, 5, 0, 5))
-local PlayerBtn, PlayerIcon, PlayerLabel = createMenuButton("Player", "👤", UDim2.new(0, 5, 0, 50))
-local ConfigBtn, ConfigIcon, ConfigLabel = createMenuButton("Config", "⚙️", UDim2.new(0, 5, 0, 95))
+local ConfigBtn, ConfigIcon, ConfigLabel = createMenuButton("Config", "⚙️", UDim2.new(0, 5, 0, 50))
 
 -- Função para trocar seções
 local function switchSection(section, button, icon, label)
     -- Desativa todos
     MainSection.Visible = false
-    PlayerSection.Visible = false
     ConfigSection.Visible = false
     
     MainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
-    PlayerBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
     ConfigBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 37)
     
     MainIcon.TextColor3 = Color3.fromRGB(150, 150, 160)
-    PlayerIcon.TextColor3 = Color3.fromRGB(150, 150, 160)
     ConfigIcon.TextColor3 = Color3.fromRGB(150, 150, 160)
     
     MainLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
-    PlayerLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
     ConfigLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
     
     -- Ativa o selecionado
@@ -468,98 +467,151 @@ MainBtn.MouseButton1Click:Connect(function()
     switchSection(MainSection, MainBtn, MainIcon, MainLabel)
 end)
 
-PlayerBtn.MouseButton1Click:Connect(function()
-    switchSection(PlayerSection, PlayerBtn, PlayerIcon, PlayerLabel)
-end)
-
 ConfigBtn.MouseButton1Click:Connect(function()
     switchSection(ConfigSection, ConfigBtn, ConfigIcon, ConfigLabel)
 end)
 
 -- ==================== MAIN FEATURES ====================
 
-local coordGui, updateConnection
-local enabled = false
-
-local function createCoordGui()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local hrp = character:WaitForChild("HumanoidRootPart")
-
-    coordGui = Instance.new("ScreenGui", player.PlayerGui)
-    coordGui.Name = "PositionDisplay"
-
-    local frame = Instance.new("Frame", coordGui)
-    frame.Size = UDim2.new(0, 250, 0, 120)
-    frame.Position = UDim2.new(1, -260, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
-
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1,0,0,30)
-    title.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    title.Text = "Localização"
-    title.TextColor3 = Color3.new(1,1,1)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    Instance.new("UICorner", title).CornerRadius = UDim.new(0,8)
-
-    local function makeLabel(y, color)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Position = UDim2.new(0,10,0,y)
-        lbl.Size = UDim2.new(1,-20,0,25)
-        lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = color
-        lbl.Font = Enum.Font.GothamMedium
-        lbl.TextSize = 14
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        return lbl
-    end
-
-    local xLabel = makeLabel(35, Color3.fromRGB(255,100,100))
-    local yLabel = makeLabel(60, Color3.fromRGB(100,255,100))
-    local zLabel = makeLabel(85, Color3.fromRGB(100,100,255))
-
-    updateConnection = RunService.RenderStepped:Connect(function()
-        if hrp then
-            local p = hrp.Position
-            xLabel.Text = "X: " .. math.floor(p.X10)/10
-            yLabel.Text = "Y: " .. math.floor(p.Y10)/10
-            zLabel.Text = "Z: " .. math.floor(p.Z*10)/10
-        end
-    end)
-end
-
-local function toggleCoords()
-    enabled = not enabled
-
+-- Função para criar/destruir GUI de coordenadas
+local function toggleCoordinates(enabled)
     if enabled then
-        coordButton.Text = "Cordenadas: ON"
-        coordButton.BackgroundColor3 = Color3.fromRGB(50,150,50)
-        createCoordGui()
+        -- Criar GUI de coordenadas
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
+        coordinatesGui = Instance.new("ScreenGui")
+        coordinatesGui.Name = "PositionDisplay"
+        coordinatesGui.ResetOnSpawn = false
+        coordinatesGui.Parent = player.PlayerGui
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 250, 0, 120)
+        frame.Position = UDim2.new(1, -260, 0, 10)
+        frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        frame.BorderSizePixel = 2
+        frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+        frame.Parent = coordinatesGui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = frame
+        
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0, 30)
+        title.Position = UDim2.new(0, 0, 0, 0)
+        title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        title.Text = "Localização"
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 16
+        title.Parent = frame
+        
+        local titleCorner = Instance.new("UICorner")
+        titleCorner.CornerRadius = UDim.new(0, 8)
+        titleCorner.Parent = title
+        
+        local xLabel = Instance.new("TextLabel")
+        xLabel.Size = UDim2.new(1, -20, 0, 25)
+        xLabel.Position = UDim2.new(0, 10, 0, 35)
+        xLabel.BackgroundTransparency = 1
+        xLabel.Text = "X: 0"
+        xLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        xLabel.Font = Enum.Font.GothamMedium
+        xLabel.TextSize = 14
+        xLabel.TextXAlignment = Enum.TextXAlignment.Left
+        xLabel.Parent = frame
+        
+        local yLabel = Instance.new("TextLabel")
+        yLabel.Size = UDim2.new(1, -20, 0, 25)
+        yLabel.Position = UDim2.new(0, 10, 0, 60)
+        yLabel.BackgroundTransparency = 1
+        yLabel.Text = "Y: 0"
+        yLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        yLabel.Font = Enum.Font.GothamMedium
+        yLabel.TextSize = 14
+        yLabel.TextXAlignment = Enum.TextXAlignment.Left
+        yLabel.Parent = frame
+        
+        local zLabel = Instance.new("TextLabel")
+        zLabel.Size = UDim2.new(1, -20, 0, 25)
+        zLabel.Position = UDim2.new(0, 10, 0, 85)
+        zLabel.BackgroundTransparency = 1
+        zLabel.Text = "Z: 0"
+        zLabel.TextColor3 = Color3.fromRGB(100, 100, 255)
+        zLabel.Font = Enum.Font.GothamMedium
+        zLabel.TextSize = 14
+        zLabel.TextXAlignment = Enum.TextXAlignment.Left
+        zLabel.Parent = frame
+        
+        local function updatePosition()
+            if character and humanoidRootPart then
+                local pos = humanoidRootPart.Position
+                xLabel.Text = "X: " .. math.floor(pos.X * 10) / 10
+                yLabel.Text = "Y: " .. math.floor(pos.Y * 10) / 10
+                zLabel.Text = "Z: " .. math.floor(pos.Z * 10) / 10
+            end
+        end
+        
+        coordinatesConnection = RunService.RenderStepped:Connect(updatePosition)
+        
+        player.CharacterAdded:Connect(function(newCharacter)
+            character = newCharacter
+            humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        end)
+        
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Coordenadas",
+            Text = "Sistema de coordenadas ativado!",
+            Duration = 3
+        })
     else
-        coordButton.Text = "Cordenadas: OFF"
-        coordButton.BackgroundColor3 = Color3.fromRGB(150,50,50)
-
-        if updateConnection then
-            updateConnection:Disconnect()
-            updateConnection = nil
+        -- Destruir GUI de coordenadas
+        if coordinatesGui then
+            coordinatesGui:Destroy()
+            coordinatesGui = nil
         end
-
-        if coordGui then
-            coordGui:Destroy()
-            coordGui = nil
+        
+        if coordinatesConnection then
+            coordinatesConnection:Disconnect()
+            coordinatesConnection = nil
         end
+        
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Coordenadas",
+            Text = "Sistema de coordenadas desativado!",
+            Duration = 3
+        })
     end
 end
 
-coordButton.MouseButton1Click:Connect(toggleCoords)
+-- Toggle de Coordenadas
+createToggle("Coordenadas", MainSection, function(enabled)
+    Config.ShowCoordinates = enabled
+    toggleCoordinates(enabled)
+end)
 
--- ===== INFINITE YIELD =====
-iyButton.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet(
-        "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
-    ))()
+-- Botão Infinite Yield
+local InfiniteYieldBtn = Instance.new("TextButton")
+InfiniteYieldBtn.Size = UDim2.new(1, -10, 0, 45)
+InfiniteYieldBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+InfiniteYieldBtn.BorderSizePixel = 0
+InfiniteYieldBtn.Text = "🚀 Executar Infinite Yield"
+InfiniteYieldBtn.Font = Enum.Font.GothamBold
+InfiniteYieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+InfiniteYieldBtn.TextSize = 14
+InfiniteYieldBtn.Parent = MainSection
+
+Instance.new("UICorner", InfiniteYieldBtn).CornerRadius = UDim.new(0, 8)
+
+InfiniteYieldBtn.MouseButton1Click:Connect(function()
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Infinite Yield",
+        Text = "Carregando Infinite Yield...",
+        Duration = 3
+    })
+    
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 end)
 
 -- ==================== CONFIG ====================
